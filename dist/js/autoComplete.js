@@ -33,6 +33,11 @@
     highlight: "autoComplete_highlighted",
     selectedResult: "autoComplete_selected"
   };
+  var keys = {
+    ENTER: 13,
+    ARROW_UP: 38,
+    ARROW_DOWN: 40
+  };
   var getInput = function getInput(selector) {
     return typeof selector === "string" ? document.querySelector(selector) : selector();
   };
@@ -49,14 +54,16 @@
     return "<span class=".concat(select.highlight, ">").concat(value, "</span>");
   };
   var addResultsToList = function addResultsToList(resultsList, dataSrc, resultItem) {
+    var fragment = document.createDocumentFragment();
     dataSrc.forEach(function (event, record) {
       var result = document.createElement(resultItem.element);
       var resultIndex = dataSrc[record].index;
       result.setAttribute(dataAttribute, resultIndex);
       result.setAttribute("class", select.result);
       resultItem.content ? resultItem.content(event, result) : result.innerHTML = event.match || event;
-      resultsList.appendChild(result);
+      fragment.appendChild(result);
     });
+    resultsList.appendChild(fragment);
   };
   var clearResults = function clearResults(resultsList) {
     return resultsList.innerHTML = "";
@@ -70,7 +77,7 @@
         return record.value;
       }),
       selection: resultsValues.list.find(function (value) {
-        if (event.keyCode === 13) {
+        if (event.keyCode === keys.ENTER) {
           return value.index === Number(selection.getAttribute(dataAttribute));
         } else if (event.type === "mousedown") {
           return value.index === Number(event.target.getAttribute(dataAttribute));
@@ -99,7 +106,7 @@
     input.onkeydown = function (event) {
       if (li.length > 0) {
         switch (event.keyCode) {
-          case 38:
+          case keys.ARROW_UP:
             if (liSelected) {
               removeSelection(0);
               if (next) {
@@ -111,7 +118,7 @@
               highlightSelection(li[liLength]);
             }
             break;
-          case 40:
+          case keys.ARROW_DOWN:
             if (liSelected) {
               removeSelection(1);
               if (next) {
@@ -123,7 +130,7 @@
               highlightSelection(li[0]);
             }
             break;
-          case 13:
+          case keys.ENTER:
             if (liSelected) {
               onSelection(event, input, resultsList, feedback, resultsValues, liSelected);
             }
@@ -183,51 +190,91 @@
   function () {
     function autoComplete(config) {
       _classCallCheck(this, autoComplete);
-      this.selector = config.selector || "#autoComplete";
+      var _config$selector = config.selector,
+          selector = _config$selector === void 0 ? "#autoComplete" : _config$selector,
+          _config$data = config.data,
+          key = _config$data.key,
+          _src = _config$data.src,
+          _config$data$cache = _config$data.cache,
+          cache = _config$data$cache === void 0 ? true : _config$data$cache,
+          query = config.query,
+          _config$trigger = config.trigger;
+      _config$trigger = _config$trigger === void 0 ? {} : _config$trigger;
+      var _config$trigger$event = _config$trigger.event,
+          event = _config$trigger$event === void 0 ? ["input"] : _config$trigger$event,
+          _config$trigger$condi = _config$trigger.condition,
+          condition = _config$trigger$condi === void 0 ? false : _config$trigger$condi,
+          _config$searchEngine = config.searchEngine,
+          searchEngine = _config$searchEngine === void 0 ? "strict" : _config$searchEngine,
+          _config$threshold = config.threshold,
+          threshold = _config$threshold === void 0 ? 0 : _config$threshold,
+          _config$debounce = config.debounce,
+          debounce = _config$debounce === void 0 ? 0 : _config$debounce,
+          _config$resultsList = config.resultsList;
+      _config$resultsList = _config$resultsList === void 0 ? {} : _config$resultsList;
+      var _config$resultsList$r = _config$resultsList.render,
+          render = _config$resultsList$r === void 0 ? false : _config$resultsList$r,
+          _config$resultsList$c = _config$resultsList.container,
+          container = _config$resultsList$c === void 0 ? false : _config$resultsList$c,
+          destination = _config$resultsList.destination,
+          _config$resultsList$p = _config$resultsList.position,
+          position = _config$resultsList$p === void 0 ? "afterend" : _config$resultsList$p,
+          _config$resultsList$e = _config$resultsList.element,
+          resultsListElement = _config$resultsList$e === void 0 ? "ul" : _config$resultsList$e,
+          _config$resultsList$n = _config$resultsList.navigation,
+          navigation = _config$resultsList$n === void 0 ? false : _config$resultsList$n,
+          _config$sort = config.sort,
+          sort = _config$sort === void 0 ? false : _config$sort,
+          placeHolder = config.placeHolder,
+          _config$maxResults = config.maxResults,
+          maxResults = _config$maxResults === void 0 ? 5 : _config$maxResults,
+          _config$resultItem = config.resultItem;
+      _config$resultItem = _config$resultItem === void 0 ? {} : _config$resultItem;
+      var _config$resultItem$co = _config$resultItem.content,
+          content = _config$resultItem$co === void 0 ? false : _config$resultItem$co,
+          _config$resultItem$el = _config$resultItem.element,
+          resultItemElement = _config$resultItem$el === void 0 ? "li" : _config$resultItem$el,
+          noResults = config.noResults,
+          _config$highlight = config.highlight,
+          highlight = _config$highlight === void 0 ? false : _config$highlight,
+          onSelection = config.onSelection;
+      var resultsListView = render ? autoCompleteView.createResultsList({
+        container: container,
+        destination: destination || autoCompleteView.getInput(selector),
+        position: position,
+        element: resultsListElement
+      }) : null;
+      this.selector = selector;
       this.data = {
         src: function src() {
-          return typeof config.data.src === "function" ? config.data.src() : config.data.src;
+          return typeof _src === "function" ? _src() : _src;
         },
-        key: config.data.key,
-        cache: typeof config.data.cache === "undefined" ? true : config.data.cache
+        key: key,
+        cache: cache
       };
-      this.query = config.query;
+      this.query = query;
       this.trigger = {
-        event: config.trigger && config.trigger.event ? config.trigger.event : ["input"],
-        condition: config.trigger && config.trigger.condition ? config.trigger.condition : false
+        event: event,
+        condition: condition
       };
-      this.searchEngine = config.searchEngine === "loose" ? "loose" : typeof config.searchEngine === "function" ? config.searchEngine : "strict";
-      this.threshold = config.threshold || 0;
-      this.debounce = config.debounce || 0;
+      this.searchEngine = searchEngine === "loose" ? "loose" : typeof searchEngine === "function" ? searchEngine : "strict";
+      this.threshold = threshold;
+      this.debounce = debounce;
       this.resultsList = {
-        render: config.resultsList && config.resultsList.render ? config.resultsList.render : false,
-        view: config.resultsList && config.resultsList.render ? autoCompleteView.createResultsList({
-          container:
-          config.resultsList && config.resultsList.container
-          ? config.resultsList.container
-          : false,
-          destination:
-          config.resultsList && config.resultsList.destination
-          ? config.resultsList.destination
-          : autoCompleteView.getInput(this.selector),
-          position:
-          config.resultsList && config.resultsList.position
-          ? config.resultsList.position
-          : "afterend",
-          element: config.resultsList && config.resultsList.element ? config.resultsList.element : "ul"
-        }) : null,
-        navigation: config.resultsList && config.resultsList.navigation ? config.resultsList.navigation : false
+        render: render,
+        view: resultsListView,
+        navigation: navigation
       };
-      this.sort = config.sort || false;
-      this.placeHolder = config.placeHolder;
-      this.maxResults = config.maxResults || 5;
+      this.sort = sort;
+      this.placeHolder = placeHolder;
+      this.maxResults = maxResults;
       this.resultItem = {
-        content: config.resultItem && config.resultItem.content ? config.resultItem.content : false,
-        element: config.resultItem && config.resultItem.element ? config.resultItem.element : "li"
+        content: content,
+        element: resultItemElement
       };
-      this.noResults = config.noResults;
-      this.highlight = config.highlight || false;
-      this.onSelection = config.onSelection;
+      this.noResults = noResults;
+      this.highlight = highlight;
+      this.onSelection = onSelection;
       this.init();
     }
     _createClass(autoComplete, [{
